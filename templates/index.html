@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пересказ текста</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .upload-section,
+        .download-section,
+        .info-section,
+        .process-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .file-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .download-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        .transcribe-btn {
+            background-color: #2196F3;
+            color: white;
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        .flash-message {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .view-btn {
+            background-color: #ff9800;
+            color: white;
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        .keywords-block {
+            background-color: #e3f2fd;
+            padding: 10px;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 15px;
+        }
+
+        .summary-block {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .keyword-item {
+            display: inline-block;
+            background-color: #bbdefb;
+            padding: 3px 8px;
+            margin: 3px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        .keyword-count {
+            font-weight: bold;
+            color: #0d47a1;
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Пересказ текста с выделением ключевых слов</h1>
+
+    <!-- Сообщения flash -->
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+    <div class="flash-message">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- Секция загрузки файла -->
+    <div class="upload-section">
+        <h2>Загрузка файла</h2>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <button type="submit">Загрузить</button>
+        </form>
+    </div>
+
+    <!-- Секция расшифровки файлов -->
+    <div class="download-section">
+        <h2>Доступные файлы для записи в текстовый формат</h2>
+        {% if audio_files %}
+        <ul class="file-list">
+            {% for file in audio_files %}
+            <li class="file-item">
+                <span>{{ file.name }} ({{ (file.size/1024)|round(2) }} KB)</span>
+                <a href="{{ url_for('transcribe_file', filename=file.name) }}" class="transcribe-btn">Записать в
+                    .txt</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>Нет загруженных файлов.</p>
+        {% endif %}
+    </div>
+
+    <!-- Секция текстовых файлов -->
+    <div class="download-section">
+        <h2>Текстовые файлы</h2>
+        {% if transcript_files %}
+        <ul class="file-list">
+            {% for file in transcript_files %}
+            <li class="file-item">
+                <span>{{ file.name }} ({{ (file.size/1024)|round(2) }} KB)</span>
+                <div>
+                    <a href="{{ url_for('process_text_file', filename=file.name) }}"
+                        class="transcribe-btn">Обработать</a>
+                    <a href="{{ url_for('download_file', folder='transcripts', filename=file.name) }}"
+                        class="download-btn">Скачать</a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>Нет текстовых файлов.</p>
+        {% endif %}
+    </div>
+
+    <!-- Секция обработанных файлов -->
+    <div class="download-section">
+        <h2>Обработанные файлы</h2>
+        {% if structured_files %}
+        <ul class="file-list">
+            {% for file in structured_files %}
+            <li class="file-item">
+                <span>{{ file.name }} ({{ (file.size/1024)|round(2) }} KB)</span>
+                <div>
+                    <a href="{{ url_for('view_structured_file', filename=file.name.replace('.txt', '.html')) }}"
+                        class="transcribe-btn" style="background-color: #ff9800;">Просмотр</a>
+                    <a href="{{ url_for('download_file', folder='structured', filename=file.name) }}"
+                        class="download-btn">Скачать</a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>Нет обработанных файлов.</p>
+        {% endif %}
+    </div>
+
+    <!-- Информационный блок -->
+    <div class="info-section">
+        <h2>Информация
+            {% if current_file %}
+            <span style="font-size: 14px; color: #666;">({{ current_file }})</span>
+            {% endif %}
+        </h2>
+        <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            {% if info_text %}
+            <div style="font-family: Arial, sans-serif;">
+                {{ info_text|safe }}
+            </div>
+            {% else %}
+            <p>Выберите файл для просмотра его содержимого.</p>
+            {% endif %}
+        </div>
+        {% if info_text %}
+        {% endif %}
+    </div>
+
+</body>
+
+</html>

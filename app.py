@@ -8,7 +8,6 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['TRANSCRIPT_FOLDER'] = 'transcripts'
 app.config['STRUCTURED_FOLDER'] = 'structured'
-app.config['SECRET_KEY'] = 'your-secret-key-here'
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['TRANSCRIPT_FOLDER'], exist_ok=True)
